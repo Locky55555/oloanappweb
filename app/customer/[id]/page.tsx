@@ -65,11 +65,21 @@ export default function CustomerBillPage() {
     const attemptFetch = async (): Promise<void> => {
       try {
         console.log(`Fetching bill attempt ${retryCount + 1} for ID: ${id}`)
+        console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
+        console.log('Supabase client status:', supabase ? 'initialized' : 'not initialized')
         
         // Simple delay without complex logic
         if (retryCount > 0) {
           await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
         }
+        
+        // Test connection first
+        const { data: testData, error: testError } = await supabase
+          .from('bills')
+          .select('count')
+          .limit(1)
+        
+        console.log('Connection test:', { testData, testError })
         
         const { data, error } = await supabase
           .from('bills')
@@ -77,10 +87,18 @@ export default function CustomerBillPage() {
           .eq('id', id)
           .single()
         
+        console.log('Query result:', { data, error, id })
+        
         if (error) {
-          console.error('Supabase error:', error)
+          console.error('Supabase error details:', {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          })
+          
           if (error.code === 'PGRST116') {
-            console.log('Bill not found')
+            console.log('Bill not found - PGRST116 error')
             setBill(null)
             return
           }
@@ -96,6 +114,7 @@ export default function CustomerBillPage() {
         }
       } catch (error) {
         console.error(`Fetch error (attempt ${retryCount + 1}):`, error)
+        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
         
         if (retryCount < maxRetries) {
           retryCount++

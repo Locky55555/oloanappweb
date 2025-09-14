@@ -51,18 +51,20 @@ export default function AdminDashboard() {
     }
   }
 
-  const generateBill = async (e: React.FormEvent) => {
+  const createBill = async (e: React.FormEvent) => {
     e.preventDefault()
     
     try {
       const { data, error } = await supabase
         .from('bills')
-        .insert([{
-          customer_name: formData.customer_name,
-          amount: parseFloat(formData.amount),
-          due_date: formData.due_date,
-          lender: formData.lender
-        }])
+        .insert([
+          {
+            customer_name: formData.customer_name,
+            amount: parseFloat(formData.amount),
+            due_date: formData.due_date || null,
+            lender: formData.lender
+          }
+        ])
         .select()
       
       if (error) throw error
@@ -77,6 +79,31 @@ export default function AdminDashboard() {
       fetchBills()
     } catch (error) {
       console.error('Error creating bill:', error)
+    }
+  }
+
+  const createTestBill = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('bills')
+        .insert([
+          {
+            id: 'ea13618a-7738-4d9e-8ff6-e159f0809cc2',
+            customer_name: 'ลูกค้าทดสอบ',
+            amount: 15000,
+            due_date: '2024-12-31',
+            lender: 'Lend Pro'
+          }
+        ])
+        .select()
+      
+      if (error) throw error
+      
+      alert('สร้างข้อมูลทดสอบสำเร็จ!')
+      fetchBills()
+    } catch (error) {
+      console.error('Error creating test bill:', error)
+      alert('เกิดข้อผิดพลาด: ' + (error as any).message)
     }
   }
 
@@ -107,22 +134,28 @@ export default function AdminDashboard() {
       <div className="max-w-6xl mx-auto">
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
           <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Admin Dashboard - จัดการบิลชำระหนี้
-            </h1>
+          <h1 className="text-2xl font-bold text-gray-900">จัดการบิลเงินกู้</h1>
+          <div className="flex gap-2">
+            <button
+              onClick={createTestBill}
+              className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition-colors text-sm"
+            >
+              สร้างข้อมูลทดสอบ
+            </button>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="bg-primary-500 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-primary-600 transition-colors"
+              className="bg-primary-500 text-white px-4 py-2 rounded-lg hover:bg-primary-600 transition-colors flex items-center gap-2"
             >
               <Plus size={20} />
-              สร้างบิลใหม่
+              เพิ่มบิลใหม่
             </button>
           </div>
+        </div>
 
           {showForm && (
             <div className="bg-gray-50 p-4 rounded-lg mb-6">
               <h2 className="text-lg font-semibold mb-4">สร้างบิลใหม่</h2>
-              <form onSubmit={generateBill} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <form onSubmit={createBill} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     ชื่อลูกค้า
