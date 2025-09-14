@@ -19,14 +19,40 @@ export default function CustomerBillPage() {
     }
   }, [params.id])
 
+  // Add URL validation for social media crawlers
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const fbclid = urlParams.get('fbclid')
+    const gclid = urlParams.get('gclid')
+    
+    // If coming from social media, ensure proper loading
+    if (fbclid || gclid || document.referrer.includes('facebook') || 
+        document.referrer.includes('whatsapp') || document.referrer.includes('line')) {
+      // Add extra delay for social media browsers
+      setTimeout(() => {
+        if (!bill && params.id) {
+          fetchBill(params.id as string)
+        }
+      }, 500)
+    }
+  }, [])
+
   const fetchBill = async (id: string) => {
     let retryCount = 0
-    const maxRetries = 3
+    const maxRetries = 5 // Increase retries for social media browsers
     
     const attemptFetch = async (): Promise<void> => {
       try {
-        // Add delay for mobile browsers
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // Longer delay for social media browsers
+        const delay = retryCount === 0 ? 200 : 500 * retryCount
+        await new Promise(resolve => setTimeout(resolve, delay))
+        
+        // Validate ID format
+        if (!id || id.length < 10) {
+          throw new Error('Invalid bill ID format')
+        }
+        
+        console.log(`Attempting to fetch bill with ID: ${id}`)
         
         const { data, error } = await supabase
           .from('bills')
@@ -36,6 +62,10 @@ export default function CustomerBillPage() {
         
         if (error) {
           console.error('Supabase error:', error)
+          // Check if it's a network error vs data not found
+          if (error.code === 'PGRST116') {
+            throw new Error('Bill not found')
+          }
           throw error
         }
         
@@ -43,21 +73,25 @@ export default function CustomerBillPage() {
           throw new Error('No bill data returned')
         }
         
+        console.log('Bill data loaded successfully:', data)
         setBill(data)
       } catch (error) {
         console.error(`Error fetching bill (attempt ${retryCount + 1}):`, error)
         
         if (retryCount < maxRetries) {
           retryCount++
-          // Exponential backoff
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+          // Longer exponential backoff for social media browsers
+          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount))
           return attemptFetch()
         }
         
         // Final attempt failed
+        console.error('All retry attempts failed')
         setBill(null)
       } finally {
-        setLoading(false)
+        if (retryCount >= maxRetries || bill) {
+          setLoading(false)
+        }
       }
     }
     
@@ -112,12 +146,23 @@ export default function CustomerBillPage() {
             <p className="text-gray-600 text-sm mb-4">
               ไม่สามารถโหลดข้อมูลบิลได้ กรุณาตรวจสอบลิงก์หรือลองใหม่อีกครั้ง
             </p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-600 transition-colors"
-            >
-              โหลดใหม่
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  setLoading(true)
+                  setBill(null)
+                  if (params.id) {
+                    fetchBill(params.id as string)
+                  }
+                }}
+                className="w-full bg-primary-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-600 transition-colors"
+              >
+                โหลดใหม่
+              </button>
+              <p className="text-xs text-gray-500 text-center">
+                หากมาจาก WhatsApp/Facebook/LINE กรุณาเปิดในเบราว์เซอร์
+              </p>
+            </div>
           </div>
         </div>
       </div>
