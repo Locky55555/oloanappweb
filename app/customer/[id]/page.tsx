@@ -22,113 +22,46 @@ export default function CustomerBillPage() {
     }
   }, [params.id])
 
-  // Enhanced social media browser detection
+  // Simple mobile browser support
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search)
-    const fbclid = urlParams.get('fbclid')
-    const gclid = urlParams.get('gclid')
-    const referrer = document.referrer.toLowerCase()
-    
-    // Detect various social media sources
-    const isSocialMedia = fbclid || gclid || 
-      referrer.includes('facebook') || 
-      referrer.includes('whatsapp') || 
-      referrer.includes('line') ||
-      referrer.includes('messenger') ||
-      referrer.includes('t.co') ||
-      referrer.includes('instagram') ||
-      navigator.userAgent.includes('FBAN') ||
-      navigator.userAgent.includes('FBAV') ||
-      navigator.userAgent.includes('Line')
-    
-    if (isSocialMedia && params.id) {
-      console.log('Social media browser detected, adding extra delay')
-      // Multiple retry attempts for social media
-      setTimeout(() => fetchBill(params.id as string), 1000)
+    // Simple retry for mobile browsers
+    if (params.id && !bill) {
       setTimeout(() => {
-        if (!bill) fetchBill(params.id as string)
-      }, 3000)
+        fetchBill(params.id as string)
+      }, 500)
     }
   }, [])
 
   const fetchBill = async (id: string) => {
     if (!id) {
-      console.error('No ID provided')
       setLoading(false)
       setBill(null)
       return
     }
 
-    let retryCount = 0
-    const maxRetries = 3
-    
-    const attemptFetch = async (): Promise<void> => {
-      try {
-        console.log(`Fetching bill attempt ${retryCount + 1} for ID: ${id}`)
-        console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL)
-        console.log('Supabase client status:', supabase ? 'initialized' : 'not initialized')
-        
-        // Simple delay without complex logic
-        if (retryCount > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
-        }
-        
-        // Test connection first
-        const { data: testData, error: testError } = await supabase
-          .from('bills')
-          .select('count')
-          .limit(1)
-        
-        console.log('Connection test:', { testData, testError })
-        
-        const { data, error } = await supabase
-          .from('bills')
-          .select('*')
-          .eq('id', id)
-          .single()
-        
-        console.log('Query result:', { data, error, id })
-        
-        if (error) {
-          console.error('Supabase error details:', {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint
-          })
-          
-          if (error.code === 'PGRST116') {
-            console.log('Bill not found - PGRST116 error')
-            setBill(null)
-            return
-          }
+    try {
+      const { data, error } = await supabase
+        .from('bills')
+        .select('*')
+        .eq('id', id)
+        .single()
+      
+      if (error) {
+        if (error.code === 'PGRST116') {
+          setBill(null)
+        } else {
           throw error
         }
-        
-        if (data) {
-          console.log('Bill loaded successfully:', data)
-          setBill(data)
-        } else {
-          console.log('No data returned')
-          setBill(null)
-        }
-      } catch (error) {
-        console.error(`Fetch error (attempt ${retryCount + 1}):`, error)
-        console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
-        
-        if (retryCount < maxRetries) {
-          retryCount++
-          return attemptFetch()
-        }
-        
-        console.error('All attempts failed')
+      } else if (data) {
+        setBill(data)
+      } else {
         setBill(null)
-      } finally {
-        setLoading(false)
       }
+    } catch (error) {
+      setBill(null)
+    } finally {
+      setLoading(false)
     }
-    
-    await attemptFetch()
   }
 
   const formatAmount = (amount: number) => {
@@ -158,17 +91,10 @@ export default function CustomerBillPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 social-media-fix">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center p-4">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-          <p className="text-gray-600 mb-2">กำลังโหลด กรุณารอสักครู่...</p>
-          <p className="text-xs text-gray-500">หากโหลดนานเกินไป กรุณาเปิดในเบราว์เซอร์</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm hover:bg-primary-600"
-          >
-            โหลดใหม่
-          </button>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">กำลังโหลด...</p>
         </div>
       </div>
     )

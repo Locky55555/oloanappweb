@@ -38,77 +38,24 @@ input, textarea, [contenteditable] {
   user-select: text;
 }
 
-/* iOS Safari specific fixes */
+/* Simple mobile browser support */
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: 'Noto Sans Thai', sans-serif;
+}
+
+/* Basic mobile fixes */
 input, textarea, select {
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  appearance: none;
-  font-size: 16px; /* Prevent zoom on focus */
-  border-radius: 0; /* Fix iOS rounded corners */
-}
-
-/* Android Chrome specific fixes */
-input:focus, textarea:focus, select:focus {
-  outline: none;
   font-size: 16px;
-  -webkit-user-select: text;
-  user-select: text;
 }
 
-/* WebView compatibility - Enhanced */
-* {
-  -webkit-tap-highlight-color: transparent;
-  -webkit-touch-callout: none;
-  box-sizing: border-box;
-}
-
-/* Social media browser fixes */
-.social-media-fix {
-  -webkit-transform: translateZ(0);
-  transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-}
-
-/* Loading state improvements */
-.loading-container {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.95);
-  z-index: 9999;
-}
-
-/* WhatsApp/LINE WebView fixes */
+/* Simple mobile styles */
 @media screen and (max-width: 768px) {
-  html {
-    -webkit-text-size-adjust: none;
-    overflow-x: hidden;
-  }
-  
   body {
-    -webkit-user-select: text;
-    -moz-user-select: text;
-    -ms-user-select: text;
-    user-select: text;
     overflow-x: hidden;
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
-  }
-  
-  /* Fix for iOS Safari viewport */
-  .min-h-screen {
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
-  }
-}
-
-/* Facebook/Messenger WebView fixes */
-@supports (-webkit-touch-callout: none) {
-  .min-h-screen {
-    min-height: -webkit-fill-available;
   }
 }
 
