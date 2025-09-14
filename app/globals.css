@@ -14,6 +14,47 @@ body {
   max-width: 100vw;
   overflow-x: hidden;
   font-family: 'Noto Sans Thai', sans-serif;
+  /* Mobile browser optimizations */
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent zoom on input focus for iOS */
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection for specific elements */
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  -khtml-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .ios-fix {
+    -webkit-appearance: none;
+    appearance: none;
+    border-radius: 0;
+  }
+}
+
+/* Android Chrome specific fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select, input, textarea {
+    font-size: 16px; /* Prevent zoom on focus */
+  }
+}
+
+/* WebView compatibility */
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {

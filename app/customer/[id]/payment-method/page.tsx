@@ -29,21 +29,46 @@ export default function PaymentMethodPage() {
   }, [params.id])
 
   const fetchBill = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('bills')
-        .select('*')
-        .eq('id', id)
-        .single()
-      
-      if (error) throw error
-      setBill(data)
-      setAmount(data.amount.toString())
-    } catch (error) {
-      console.error('Error fetching bill:', error)
-    } finally {
-      setLoading(false)
+    let retryCount = 0
+    const maxRetries = 3
+    
+    const attemptFetch = async (): Promise<void> => {
+      try {
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        const { data, error } = await supabase
+          .from('bills')
+          .select('*')
+          .eq('id', id)
+          .single()
+        
+        if (error) {
+          console.error('Supabase error:', error)
+          throw error
+        }
+        
+        if (!data) {
+          throw new Error('No bill data returned')
+        }
+        
+        setBill(data)
+        setAmount(data.amount.toString())
+      } catch (error) {
+        console.error(`Error fetching bill (attempt ${retryCount + 1}):`, error)
+        
+        if (retryCount < maxRetries) {
+          retryCount++
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+          return attemptFetch()
+        }
+        
+        setBill(null)
+      } finally {
+        setLoading(false)
+      }
     }
+    
+    await attemptFetch()
   }
 
   const formatAmount = (amount: number) => {

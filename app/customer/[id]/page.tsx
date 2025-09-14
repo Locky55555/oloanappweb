@@ -20,20 +20,48 @@ export default function CustomerBillPage() {
   }, [params.id])
 
   const fetchBill = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('bills')
-        .select('*')
-        .eq('id', id)
-        .single()
-      
-      if (error) throw error
-      setBill(data)
-    } catch (error) {
-      console.error('Error fetching bill:', error)
-    } finally {
-      setLoading(false)
+    let retryCount = 0
+    const maxRetries = 3
+    
+    const attemptFetch = async (): Promise<void> => {
+      try {
+        // Add delay for mobile browsers
+        await new Promise(resolve => setTimeout(resolve, 100))
+        
+        const { data, error } = await supabase
+          .from('bills')
+          .select('*')
+          .eq('id', id)
+          .single()
+        
+        if (error) {
+          console.error('Supabase error:', error)
+          throw error
+        }
+        
+        if (!data) {
+          throw new Error('No bill data returned')
+        }
+        
+        setBill(data)
+      } catch (error) {
+        console.error(`Error fetching bill (attempt ${retryCount + 1}):`, error)
+        
+        if (retryCount < maxRetries) {
+          retryCount++
+          // Exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
+          return attemptFetch()
+        }
+        
+        // Final attempt failed
+        setBill(null)
+      } finally {
+        setLoading(false)
+      }
     }
+    
+    await attemptFetch()
   }
 
   const formatAmount = (amount: number) => {
@@ -74,9 +102,23 @@ export default function CustomerBillPage() {
 
   if (!bill) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <p className="text-red-600 text-lg">ไม่พบข้อมูลบิล</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <div className="text-center max-w-md mx-auto">
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <div className="text-red-500 text-6xl mb-4">⚠️</div>
+            <h2 className="text-lg font-semibold text-gray-900 mb-2">
+              ไม่พบข้อมูลบิล
+            </h2>
+            <p className="text-gray-600 text-sm mb-4">
+              ไม่สามารถโหลดข้อมูลบิลได้ กรุณาตรวจสอบลิงก์หรือลองใหม่อีกครั้ง
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-600 transition-colors"
+            >
+              โหลดใหม่
+            </button>
+          </div>
         </div>
       </div>
     )
