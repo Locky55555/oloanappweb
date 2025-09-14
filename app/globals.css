@@ -9,22 +9,24 @@
   margin: 0;
 }
 
-html,
+html {
+  -webkit-text-size-adjust: 100%;
+  -ms-text-size-adjust: 100%;
+  height: 100%;
+}
+
 body {
   max-width: 100vw;
   overflow-x: hidden;
   font-family: 'Noto Sans Thai', sans-serif;
-  /* Mobile browser optimizations */
-  -webkit-text-size-adjust: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  /* Prevent zoom on input focus for iOS */
-  -webkit-touch-callout: none;
   -webkit-user-select: none;
-  -khtml-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   user-select: none;
+  height: 100%;
+  position: relative;
 }
 
 /* Allow text selection for specific elements */
@@ -37,11 +39,84 @@ input, textarea, [contenteditable] {
 }
 
 /* iOS Safari specific fixes */
+input, textarea, select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  font-size: 16px; /* Prevent zoom on focus */
+  border-radius: 0; /* Fix iOS rounded corners */
+}
+
+/* Android Chrome specific fixes */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  font-size: 16px;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* WebView compatibility - Enhanced */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  box-sizing: border-box;
+}
+
+/* Social media browser fixes */
+.social-media-fix {
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Loading state improvements */
+.loading-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  z-index: 9999;
+}
+
+/* WhatsApp/LINE WebView fixes */
+@media screen and (max-width: 768px) {
+  html {
+    -webkit-text-size-adjust: none;
+    overflow-x: hidden;
+  }
+  
+  body {
+    -webkit-user-select: text;
+    -moz-user-select: text;
+    -ms-user-select: text;
+    user-select: text;
+    overflow-x: hidden;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+  
+  /* Fix for iOS Safari viewport */
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* Facebook/Messenger WebView fixes */
+@supports (-webkit-touch-callout: none) {
+  .min-h-screen {
+    min-height: -webkit-fill-available;
+  }
+}
+
+/* iOS Safari specific fixes */
 @supports (-webkit-touch-callout: none) {
   .ios-fix {
     -webkit-appearance: none;
     appearance: none;
-    border-radius: 0;
   }
 }
 

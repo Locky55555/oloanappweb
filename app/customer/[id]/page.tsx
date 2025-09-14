@@ -15,44 +15,61 @@ export default function CustomerBillPage() {
 
   useEffect(() => {
     if (params.id) {
-      fetchBill(params.id as string)
+      // Add immediate timeout to ensure proper loading
+      setTimeout(() => {
+        fetchBill(params.id as string)
+      }, 100)
     }
   }, [params.id])
 
-  // Add URL validation for social media crawlers
+  // Enhanced social media browser detection
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search)
     const fbclid = urlParams.get('fbclid')
     const gclid = urlParams.get('gclid')
+    const referrer = document.referrer.toLowerCase()
     
-    // If coming from social media, ensure proper loading
-    if (fbclid || gclid || document.referrer.includes('facebook') || 
-        document.referrer.includes('whatsapp') || document.referrer.includes('line')) {
-      // Add extra delay for social media browsers
+    // Detect various social media sources
+    const isSocialMedia = fbclid || gclid || 
+      referrer.includes('facebook') || 
+      referrer.includes('whatsapp') || 
+      referrer.includes('line') ||
+      referrer.includes('messenger') ||
+      referrer.includes('t.co') ||
+      referrer.includes('instagram') ||
+      navigator.userAgent.includes('FBAN') ||
+      navigator.userAgent.includes('FBAV') ||
+      navigator.userAgent.includes('Line')
+    
+    if (isSocialMedia && params.id) {
+      console.log('Social media browser detected, adding extra delay')
+      // Multiple retry attempts for social media
+      setTimeout(() => fetchBill(params.id as string), 1000)
       setTimeout(() => {
-        if (!bill && params.id) {
-          fetchBill(params.id as string)
-        }
-      }, 500)
+        if (!bill) fetchBill(params.id as string)
+      }, 3000)
     }
   }, [])
 
   const fetchBill = async (id: string) => {
+    if (!id) {
+      console.error('No ID provided')
+      setLoading(false)
+      setBill(null)
+      return
+    }
+
     let retryCount = 0
-    const maxRetries = 5 // Increase retries for social media browsers
+    const maxRetries = 3
     
     const attemptFetch = async (): Promise<void> => {
       try {
-        // Longer delay for social media browsers
-        const delay = retryCount === 0 ? 200 : 500 * retryCount
-        await new Promise(resolve => setTimeout(resolve, delay))
+        console.log(`Fetching bill attempt ${retryCount + 1} for ID: ${id}`)
         
-        // Validate ID format
-        if (!id || id.length < 10) {
-          throw new Error('Invalid bill ID format')
+        // Simple delay without complex logic
+        if (retryCount > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount))
         }
-        
-        console.log(`Attempting to fetch bill with ID: ${id}`)
         
         const { data, error } = await supabase
           .from('bills')
@@ -62,36 +79,33 @@ export default function CustomerBillPage() {
         
         if (error) {
           console.error('Supabase error:', error)
-          // Check if it's a network error vs data not found
           if (error.code === 'PGRST116') {
-            throw new Error('Bill not found')
+            console.log('Bill not found')
+            setBill(null)
+            return
           }
           throw error
         }
         
-        if (!data) {
-          throw new Error('No bill data returned')
+        if (data) {
+          console.log('Bill loaded successfully:', data)
+          setBill(data)
+        } else {
+          console.log('No data returned')
+          setBill(null)
         }
-        
-        console.log('Bill data loaded successfully:', data)
-        setBill(data)
       } catch (error) {
-        console.error(`Error fetching bill (attempt ${retryCount + 1}):`, error)
+        console.error(`Fetch error (attempt ${retryCount + 1}):`, error)
         
         if (retryCount < maxRetries) {
           retryCount++
-          // Longer exponential backoff for social media browsers
-          await new Promise(resolve => setTimeout(resolve, 2000 * retryCount))
           return attemptFetch()
         }
         
-        // Final attempt failed
-        console.error('All retry attempts failed')
+        console.error('All attempts failed')
         setBill(null)
       } finally {
-        if (retryCount >= maxRetries || bill) {
-          setLoading(false)
-        }
+        setLoading(false)
       }
     }
     
@@ -125,10 +139,17 @@ export default function CustomerBillPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 social-media-fix">
+        <div className="text-center p-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">กำลังโหลด กรุณารอสักครู่...</p>
+          <p className="text-gray-600 mb-2">กำลังโหลด กรุณารอสักครู่...</p>
+          <p className="text-xs text-gray-500">หากโหลดนานเกินไป กรุณาเปิดในเบราว์เซอร์</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-primary-500 text-white rounded-lg text-sm hover:bg-primary-600"
+          >
+            โหลดใหม่
+          </button>
         </div>
       </div>
     )
